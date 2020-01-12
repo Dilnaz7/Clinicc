@@ -41,3 +41,28 @@ class Doctor(models.Model):
     def __str__(self):
         return self.name
 
+class UserProfile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    name = models.CharField(max_length=50)
+    address = models.CharField(max_length=50)
+    phone = models.PositiveIntegerField()
+    email = models.CharField(max_length=250)
+    comments = models.CharField(max_length=250)
+
+
+class Comment(models.Model):
+    user = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='comments')
+    title = models.CharField(max_length=255)
+    name = models.CharField(max_length=50)
+    body = models.TextField()
+    created = models.DateTimeField(default=timezone.now)
+    active = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ('-created',)
+
+    def __str__(self):
+        return 'Комментарий {} в {}'.format(self.body, self.name)
+
+
+

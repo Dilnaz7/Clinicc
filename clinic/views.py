@@ -1,5 +1,5 @@
-from django.shortcuts import render, HttpResponse
-from .forms import DoctorLoginForm, DoctorRegisterForm
+from django.shortcuts import render, HttpResponse, get_object_or_404
+from .forms import DoctorLoginForm, DoctorRegisterForm, LoginForm, UserRegistrationForm, CommentForm
 from django.contrib.auth import authenticate, login, logout
 from django.views.generic import TemplateView, ListView
 from .models import Doctor, Clinic
@@ -80,6 +80,68 @@ class DoctorListView(ListView):
 
 def test(request):
     return render(request, 'Doctors.html')
+
+
+def user_login(request):
+    if request.method == 'POST':
+        form = LoginForm(request.POST)
+        if form.is_valid():
+            cd = form.cleaned_data
+            user = authenticate(request,
+                                username=cd['username'],
+                                password=cd['password'])
+            if user is not None:
+                if user.is_active():
+                    login(request, user)
+                    return HttpResponse('Авторизация прошла успешно!')
+                else:
+                    return HttpResponse('Неверный логин или пароль, попробуйте еще раз!')
+        else:
+            return HttpResponse('Неверный логин')
+    else:
+        form = LoginForm()
+    return render(request, 'account/user_login.html', {'form': form})
+
+
+def user_register(request):
+    if request.method == 'POST':
+        user_form = UserRegistrationForm(request.POST)
+        if user_form.is_valid():
+            new_user = user_form.satestve(commit=False)
+            new_user.set_password(user_form.cleaned_data['password'])
+            new_user.save()
+            return render(request,
+                          'account/user_register_done.html',
+                          {'new_user': new_user})
+
+    else:
+        user_form = UserRegistrationForm()
+    return render(request, 'account/user_register.html', {'user_form': user_form})
+
+
+class AboutView(TemplateView):
+    template_name = 'about.html'
+
+
+def user_detail(request):
+    user = get_object_or_404(User)
+    comments = user.comments.filter(active=True)
+    new_comment = None
+
+    if request.method == 'POST':
+        comment_form = CommentForm(data=request.POST)
+        if comment_form.is_valid():
+            new_comment = comment_form.save(commit=False)
+            new_comment.user = user
+            new_comment.save()
+    else:
+        comment_form = CommentForm()
+#
+    return render(request, 'comment.html', {'user': user,
+                                           'comments': comments,
+                                           'new_comment': new_comment,
+                                           'comment_form': comment_form})
+
 
 
 
